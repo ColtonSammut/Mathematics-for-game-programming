@@ -2,9 +2,11 @@ using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.ConstrainedExecution;
 using System.Security.Cryptography;
+using Unity.VisualScripting;
 using UnityEditor;
 using UnityEditor.PackageManager.Requests;
 using UnityEngine;
@@ -12,14 +14,18 @@ using Color = UnityEngine.Color;
 
 public class BezierRoad : MonoBehaviour
 {
-    List<Vector3> Vertices;
 
+    public GameObject Car;
+
+
+    public int test = 0;
     public GameObject[] Points;
 
     public Mesh2D CrossSection;
 
+    public List<Vector3> Vertices;
 
-    [Range(0f, 1f)]
+    [Range(0f, 0.99f)]
     public float T = 0f;
 
     [Range(10, 10000)]
@@ -129,157 +135,9 @@ public class BezierRoad : MonoBehaviour
         return (Q - P).normalized;
     }
 
-    void generateMesh()
-    {
-        CrossSection = new Mesh2D(new List<Vector3>()
-        {
-            new Vector3(-7, -1 , 0),
-            new Vector3(7, -1 , 0),
-            new Vector3(7, 1 , 0),
-            new Vector3(5, 1 , 0),
-            new Vector3(3, 0 , 0),
-            new Vector3(-3, 0 , 0),
-            new Vector3(-5, 1 , 0),
-            new Vector3(-7, 1 , 0),
-        });
-
-        Vertices = new List<Vector3>();
-
-      
-
-        //CrossSection = new Mesh2D(vetices2D);
-
-        if (mesh == null)
-        {
-            mesh = new Mesh();
-            mesh.name = "Road Mesh";
-
-        }
-        else
-        {
-            mesh.Clear();
-        }
-
-
-        List<int> triangles = new List<int>();
-
-        List<Vector2> uvs = new List<Vector2>();
-
-        for (int i = 0; RoadSegments > i; i++) 
-        {
-
-            float currentSegmentT = i / RoadSegments;
-
-            int segment = GetBezSegment(currentSegmentT);
-
-            if (ClosedLoop && segment == Points.Length)
-            {
-                segment = Points.Length - 1;
-            }
-
-            float TValue = AdjustValue(currentSegmentT, segment);
-
-            Vector3 bezPoint, bezForward;
-
-
-            if (ClosedLoop && segment == Points.Length - 1)
-            {
-                // Get control Points for this segment
-                Vector3 A = Points[Points.Length - 1].GetComponent<BezierPoint>().getAnchor();
-                Vector3 B = Points[Points.Length - 1].GetComponent<BezierPoint>().getControl2();
-
-                Vector3 C = Points[0].GetComponent<BezierPoint>().getControl1();
-                Vector3 D = Points[0].GetComponent<BezierPoint>().getAnchor();
-
-                bezPoint = getBezierPoint(A, B, C, D, TValue);
-                bezForward = getForwardVector(A, B, C, D, TValue);
-            }
-            else
-            {
-                bezPoint = getBezierPoint(segment, TValue);
-                bezForward = getForwardVector(segment, TValue);
-            }
-
-            Vector3 bezRight = Vector3.Cross(Vector3.up, bezForward);
-
-            Vector3 bezUp = Vector3.Cross(bezForward, bezRight);
-
-            for (int j = 0; CrossSection.vertices.Length > j; j++)
-            {
-                Vector3 point = CrossSection.vertices[j].x
-                                * bezRight
-                                + CrossSection.vertices[j].y
-                                * bezUp;
-
-
-                point *= RoadScaler;
-
-                point += bezPoint;
-
-                Vertices.Add(point);
-
-                float u = j / (CrossSection.vertices.Length - 1);
-                float v = i / RoadSegments - 1;
-                uvs.Add(new Vector2(v, u));
-            }
-
-            int baseIndex = i * CrossSection.vertices.Length;
-            int lowerLeft, lowerRight, upperLeft, upperRight;
-
-            for (int j = 1; CrossSection.vertices.Length > j; j++)
-            {
-                lowerLeft = j + baseIndex;
-                lowerRight = lowerLeft + 1;
-
-                upperLeft = lowerLeft + CrossSection.vertices.Length;
-                upperRight = upperLeft + 1;
-
-                triangles.Add(upperRight);
-                triangles.Add(upperLeft);
-                triangles.Add(lowerLeft);
-
-                triangles.Add(lowerRight);
-                triangles.Add(upperRight);
-                triangles.Add(lowerLeft);
-
-            }
-
-            if (ClosedLoop)
-            {
-                int baseLastIndex = (RoadSegments - 1) * CrossSection.vertices.Length;
-
-                for (int j = 0; CrossSection.vertices.Length - 1 > j; j++)
-                {
-                    lowerLeft = baseLastIndex + j;
-                    lowerRight = baseLastIndex + i + 1;
-                    upperLeft = j;
-                    upperRight = i + 1;
-
-
-                    triangles.Add(upperRight);
-                    triangles.Add(upperLeft);
-                    triangles.Add(lowerLeft);
-
-                    triangles.Add(lowerRight);
-                    triangles.Add(upperRight);
-                    triangles.Add(lowerLeft);
-
-                }
-            }
-
-
-        }
-
-
-        mesh.SetVertices(Vertices);
-        mesh.SetTriangles(triangles, 0);
-        mesh.SetUVs(0, uvs);
-        mesh.RecalculateNormals();
-
-    }
-
     private void OnDrawGizmos()
     {
+        Vertices = new List<Vector3>();
 
         CrossSection = new Mesh2D(new List<Vector3>()
         {
@@ -400,6 +258,7 @@ public class BezierRoad : MonoBehaviour
 
                 }
 
+                Vertices.Add(point);
 
             }
 
@@ -487,7 +346,270 @@ public class BezierRoad : MonoBehaviour
 
     private void Start()
     {
-        generateMesh();
+
+        CrossSection = new Mesh2D(new List<Vector3>()
+        {
+            new Vector3(-7, -1 , 0),
+            new Vector3(7, -1 , 0),
+            new Vector3(7, 1 , 0),
+            new Vector3(5, 1 , 0),
+            new Vector3(3, 0 , 0),
+            new Vector3(-3, 0 , 0),
+            new Vector3(-5, 1 , 0),
+            new Vector3(-7, 1 , 0),
+        });
+
+        //foreach (Vector3 vector3 in Vertices)
+        //{
+        //    GameObject _gameobject = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+
+        //    _gameobject.name = ("Vertex" + vector3.ToString());
+        //    _gameobject.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
+        //    Instantiate(_gameobject, vector3, Quaternion.identity, gameObject.transform);
+        //}
+
+
+        //GenerateMesh();
+        //GetComponent<MeshFilter>().sharedMesh = mesh;
+    }
+
+    private void Update()
+    {
+        GenerateMesh();
+
+        Vector3 vector3 = new Vector3();
+
+        UpdateCarPosition(Car.transform, T);
+
         GetComponent<MeshFilter>().sharedMesh = mesh;
     }
+
+    public List<Vector2> uvs;
+
+    void GenerateMesh()
+    {
+        if (mesh == null)
+        {
+            mesh = new Mesh();
+            mesh.name = "Road Mesh";
+
+        }
+        else
+        {
+            mesh.Clear();
+        }
+
+
+        List<int> triangles = new List<int>();
+
+         uvs = new List<Vector2>();
+
+
+        triangles.Add(9);
+        triangles.Add(8);
+        triangles.Add(0);
+
+        triangles.Add(1);
+        triangles.Add(9);
+        triangles.Add(0);
+
+
+        int Counter = Vertices.Count - 10;
+
+        int lowerLeft, lowerRight, upperLeft, upperRight;
+        while (Counter > 0)
+        {
+
+            //for (int j = 0; CrossSection.vertices.Length > j; j++)
+            {
+                lowerLeft = Counter;
+                lowerRight = Counter + 1;
+
+                upperLeft = Counter + CrossSection.vertices.Length;
+                upperRight = Counter + CrossSection.vertices.Length + 1;
+
+                triangles.Add(upperRight);
+                triangles.Add(upperLeft);
+                triangles.Add(lowerLeft);
+
+                triangles.Add(lowerRight);
+                triangles.Add(upperRight);
+                triangles.Add(lowerLeft);
+            }
+
+
+
+
+            Counter--;
+        }
+
+        for (int i = 0; i < RoadSegments; i++)
+        {
+            for (int j = 0; CrossSection.vertices.Length> j; j++)
+            {
+                float u = i / (float)RoadSegments; 
+                float v = j / (float)(CrossSection.vertices.Length);
+                uvs.Add(new Vector2(v, u));
+            }
+        }
+
+
+        if (ClosedLoop)
+        {
+
+            //for (int j = 0; j < CrossSection.vertices.Length - 1; j++)
+            //{
+
+            //    int b = _Vertices.Count - CrossSection.vertices.Length + j;
+            //    triangles.Add(j + 1);
+            //    triangles.Add(j);
+            //    triangles.Add(b);
+
+            //    triangles.Add(b - 1);
+            //    triangles.Add(j + 1);
+            //    triangles.Add(b);
+
+
+            //    int A = 0;
+            //}
+
+
+            triangles.Add(1);
+            triangles.Add(0);
+            triangles.Add(Vertices.Count - 8);
+
+            triangles.Add(Vertices.Count - 7);
+            triangles.Add(1);
+            triangles.Add(Vertices.Count - 8);
+
+
+            triangles.Add(2);
+            triangles.Add(1);
+            triangles.Add(Vertices.Count - 7);
+
+            triangles.Add(Vertices.Count - 6);
+            triangles.Add(2);
+            triangles.Add(Vertices.Count - 7);
+
+
+            triangles.Add(3);
+            triangles.Add(2);
+            triangles.Add(Vertices.Count - 6);
+
+            triangles.Add(Vertices.Count - 5);
+            triangles.Add(3);
+            triangles.Add(Vertices.Count - 6);
+
+            triangles.Add(4);
+            triangles.Add(3);
+            triangles.Add(Vertices.Count - 5);
+
+            triangles.Add(Vertices.Count - 4);
+            triangles.Add(4);
+            triangles.Add(Vertices.Count - 5);
+            
+            triangles.Add(5);
+            triangles.Add(4);
+            triangles.Add(Vertices.Count - 4);
+
+            triangles.Add(Vertices.Count - 3);
+            triangles.Add(5);
+            triangles.Add(Vertices.Count - 4);
+
+            triangles.Add(6);
+            triangles.Add(5);
+            triangles.Add(Vertices.Count - 3);
+
+            triangles.Add(Vertices.Count - 2);
+            triangles.Add(6);
+            triangles.Add(Vertices.Count - 3);
+
+            triangles.Add(7);
+            triangles.Add(6);
+            triangles.Add(Vertices.Count - 2);
+
+            triangles.Add(Vertices.Count - 1);
+            triangles.Add(7);
+            triangles.Add(Vertices.Count - 2);
+
+            triangles.Add(8);
+            triangles.Add(7);
+            triangles.Add(Vertices.Count - 1);
+
+            //triangles.Add(_Vertices.Count);
+            //triangles.Add(8);
+            //triangles.Add(_Vertices.Count - 1);
+
+        }
+        
+        mesh.SetVertices(Vertices);
+        mesh.SetTriangles(triangles, 0);
+        mesh.SetUVs(0, uvs);
+        mesh.RecalculateNormals();
+        return;
+    }
+
+    public void UpdateCarPosition(Transform carTransform, float t)
+    {
+        // Clamp t value between 0 and 1 for safety
+        t = Mathf.Clamp01(t);
+
+        // Calculate current bezier segment
+        int segment = GetBezSegment(t);
+        float adjustedT = AdjustValue(t, segment);
+
+        Vector3 position;
+        Vector3 forward;
+
+        // Handle closed loop special case for last segment
+        if (ClosedLoop && segment == BezSegment - 1)
+        {
+            BezierPoint startPoint = Points[segment].GetComponent<BezierPoint>();
+            BezierPoint endPoint = Points[0].GetComponent<BezierPoint>();
+
+            position = getBezierPoint(
+                startPoint.getAnchor(),
+                startPoint.getControl2(),
+                endPoint.getControl1(),
+                endPoint.getAnchor(),
+                adjustedT
+            );
+
+            forward = getForwardVector(
+                startPoint.getAnchor(),
+                startPoint.getControl2(),
+                endPoint.getControl1(),
+                endPoint.getAnchor(),
+                adjustedT
+            );
+        }
+        else
+        {
+            BezierPoint currentPoint = Points[segment].GetComponent<BezierPoint>();
+            BezierPoint nextPoint = Points[segment + 1].GetComponent<BezierPoint>();
+
+            position = getBezierPoint(
+                currentPoint.getAnchor(),
+                currentPoint.getControl2(),
+                nextPoint.getControl1(),
+                nextPoint.getAnchor(),
+                adjustedT
+            );
+
+            forward = getForwardVector(
+                currentPoint.getAnchor(),
+                currentPoint.getControl2(),
+                nextPoint.getControl1(),
+                nextPoint.getAnchor(),
+                adjustedT
+            );
+        }
+
+        // Update car transform
+        carTransform.position = position;
+        carTransform.rotation = Quaternion.LookRotation(forward);
+    }
+
+
+
 }
