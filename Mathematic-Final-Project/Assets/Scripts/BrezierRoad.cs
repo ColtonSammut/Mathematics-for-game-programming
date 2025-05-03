@@ -17,6 +17,10 @@ public class BezierRoad : MonoBehaviour
 
     public GameObject Car;
 
+    public float speed = 0;
+
+    private EasingFunction.Function _cachedEasingFunction;
+
 
     public int test = 0;
     public GameObject[] Points;
@@ -359,27 +363,27 @@ public class BezierRoad : MonoBehaviour
             new Vector3(-7, 1 , 0),
         });
 
-        //foreach (Vector3 vector3 in Vertices)
-        //{
-        //    GameObject _gameobject = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-
-        //    _gameobject.name = ("Vertex" + vector3.ToString());
-        //    _gameobject.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
-        //    Instantiate(_gameobject, vector3, Quaternion.identity, gameObject.transform);
-        //}
 
 
-        //GenerateMesh();
-        //GetComponent<MeshFilter>().sharedMesh = mesh;
+        _cachedEasingFunction = EasingFunction.GetEasingFunction(EasingFunction.Ease.EaseInOutSine);
     }
 
     private void Update()
     {
         GenerateMesh();
 
-        Vector3 vector3 = new Vector3();
+        T += speed * Time.deltaTime / 100;
+        if (T > 0.99f) T = 0f;
+
+
+
+        Debug.Log(T);
+
+
+        //T = _cachedEasingFunction(0, 1, T);
 
         UpdateCarPosition(Car.transform, T);
+
 
         GetComponent<MeshFilter>().sharedMesh = mesh;
     }
@@ -457,23 +461,6 @@ public class BezierRoad : MonoBehaviour
         if (ClosedLoop)
         {
 
-            //for (int j = 0; j < CrossSection.vertices.Length - 1; j++)
-            //{
-
-            //    int b = _Vertices.Count - CrossSection.vertices.Length + j;
-            //    triangles.Add(j + 1);
-            //    triangles.Add(j);
-            //    triangles.Add(b);
-
-            //    triangles.Add(b - 1);
-            //    triangles.Add(j + 1);
-            //    triangles.Add(b);
-
-
-            //    int A = 0;
-            //}
-
-
             triangles.Add(1);
             triangles.Add(0);
             triangles.Add(Vertices.Count - 8);
@@ -535,10 +522,6 @@ public class BezierRoad : MonoBehaviour
             triangles.Add(8);
             triangles.Add(7);
             triangles.Add(Vertices.Count - 1);
-
-            //triangles.Add(_Vertices.Count);
-            //triangles.Add(8);
-            //triangles.Add(_Vertices.Count - 1);
 
         }
         
