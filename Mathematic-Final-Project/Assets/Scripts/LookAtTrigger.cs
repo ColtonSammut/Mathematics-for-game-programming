@@ -7,7 +7,9 @@ public class LookAtTrigger : MonoBehaviour
 {
     [Range(-1f, 1f)] 
     public float angleDeg = 0.8f;
-    public float rotationSpeed = 2f; // Add rotation speed parameter
+
+    [Range(0f, 100f)]
+    public float rotationSmothing = 0.5f; // Add rotation speed parameter
 
 
     //private Quaternion Rotation; // Track target rotation
@@ -45,13 +47,44 @@ public class LookAtTrigger : MonoBehaviour
         if (angle <= angleDegrees)
         {
 
-            transform.forward = Vector3.Lerp(transform.forward, v, rotationSpeed * Time.deltaTime);
+            float t = Time.time / rotationSmothing;
+
+
+
+            //Ease in and out
+            t = t * t; 
+            if (t > 1f)
+            {
+                t = 1f;
+            }
+
+            EasingFunction.Function function = EasingFunction.GetEasingFunction(EasingFunction.Ease.EaseInBounce);
+
+            t = function(0, 1, t);
+
+            transform.forward = Vector3.Lerp(transform.forward, v, t * Time.deltaTime);
         }
         else
         {
+
+
+            float t = Time.time / rotationSmothing;
+
+
+            t = t * t * t * t * t; 
+            if (t > 1f)
+            {
+                t = 1f;
+            }
+
+
+            //EasingFunction.Function function = EasingFunction.GetEasingFunction(EasingFunction.Ease.EaseInBounce);
+
+            //t = function(0, 1, t);
+
             Quaternion quat = Quaternion.LookRotation(LookAtObject.transform.position);
 
-            gameObject.transform.rotation = Quaternion.Slerp(transform.rotation, quat, rotationSpeed * Time.deltaTime);
+            gameObject.transform.rotation = Quaternion.Slerp(transform.rotation, quat, t * Time.deltaTime);
         }
 
 
